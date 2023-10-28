@@ -39,6 +39,7 @@ func TestFindAndMaskLinks(t *testing.T) {
 
 	for _, testCase := range testTable {
 		result := FindAndMaskLinks(testCase.maskedStr)
-		assert.Equal(t, testCase.expected, result, fmt.Sprintf("Incorrect result, expected \"%s\", result \"%s\"", testCase.expected, result))
+		assert.Equal(t, testCase.expected, result,
+			fmt.Sprintf("Incorrect result, expected \"%s\", result \"%s\"", testCase.expected, result))
 	}
 }

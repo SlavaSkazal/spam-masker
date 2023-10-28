@@ -1,48 +1,45 @@
 package masking
 
 func FindAndMaskLinks(sourceStr string) string {
-	maskingStr := make([]byte, len(sourceStr))
-	copy(maskingStr, sourceStr)
+	const mask = "http://"
 
-	const maskHttp = "http://"
+	if len(sourceStr) < len(mask) {
+		return sourceStr
+	}
+
+	maskingStr, maskedStr := make([]byte, len(sourceStr)), make([]byte, len(sourceStr))
+	copy(maskingStr, sourceStr)
+	copy(maskedStr, sourceStr)
+
 	spaceByte := []byte(" ")[0]
 	starByte := []byte("*")[0]
-	maskedStr := []byte(maskingStr)
 	var itsLink bool
-	var indBeginLink, indFinalLink int
-	var y int
+	var indBeginLink int
 
 	for i := 0; i < len(maskingStr); i++ {
-		if !itsLink {
-			if y+1 >= len(maskHttp) {
-				itsLink = true
-				indBeginLink = i + 1
-			} else if maskingStr[i] == maskHttp[y] {
-				if y != 0 || i == 0 || maskingStr[i-1] == spaceByte {
-					y++
-				}
-			} else {
-				y = 0
-			}
-		} else {
-			if maskingStr[i] == spaceByte {
-				indFinalLink = i - 1
-			} else if i+1 == len(maskingStr) {
-				indFinalLink = i
-			}
+		if !itsLink && i > len(maskingStr)-len(mask) {
+			break
 		}
 
-		if indBeginLink > 0 && indFinalLink > 0 {
-			endMaskedStr := maskedStr[indBeginLink:]
-			lenStars := indFinalLink - indBeginLink + 1
-			for k := 0; k < lenStars; k++ {
-				endMaskedStr[k] = starByte
+		if !itsLink && string(maskingStr[i:i+len(mask)]) == mask && (i == 0 || maskingStr[i-1] == spaceByte) {
+			itsLink = true
+			i += len(mask)
+			indBeginLink = i
+		}
+
+		if itsLink && (maskingStr[i] == spaceByte || i+1 >= len(maskingStr)) {
+			lenStars := i - indBeginLink
+			if i+1 >= len(maskingStr) {
+				lenStars++
 			}
 
-			maskedStr = append(maskedStr[:indBeginLink], endMaskedStr...)
-			indBeginLink, indFinalLink, y = 0, 0, 0
+			for k := 0; k < lenStars; k++ {
+				maskedStr[indBeginLink] = starByte
+				indBeginLink++
+			}
 			itsLink = false
 		}
 	}
+
 	return string(maskedStr)
 }
