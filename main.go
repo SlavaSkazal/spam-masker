@@ -2,10 +2,31 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"spamMasker/masking"
 )
 
 func main() {
-	strTest1 := "Here's my spammy page: http://hehefouls.netHAHAHA see you. http://sdsd"
-	fmt.Println(masking.FindAndMaskLinks(strTest1))
+	if len(os.Args) < 2 {
+		fmt.Println("order numbers not sent")
+		return
+	}
+
+	var filepathRes string
+	filepathSource := os.Args[1]
+
+	if len(os.Args) > 2 {
+		filepathRes = os.Args[2]
+	} else {
+		filepathRes = "output.txt"
+	}
+
+	serv := masking.NewService(filepathSource, filepathRes)
+
+	err := serv.Run()
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("Done.")
+	}
 }
