@@ -2,8 +2,8 @@ package masking
 
 import (
 	"bufio"
-	"fmt"
 	"os"
+	"sync"
 )
 
 type producer interface {
@@ -60,7 +60,7 @@ func (p *Producer) produce() ([]string, error) {
 
 func (p *Presenter) present(maskedStrs []string) error {
 	f, err := os.Create(p.filepathRes)
-	fmt.Println(p.filepathRes)
+
 	if err != nil {
 		return err
 	}
@@ -83,10 +83,26 @@ func (s *Service) Run() error {
 	}
 
 	maskedStrs := make([]string, len(maskingStrs))
+	const countG = 10
+	checkCountG := make(chan struct{}, countG)
+	chMaskStr := make(chan string, countG)
+	chMaskedStr := make(chan string, countG)
+	var wg sync.WaitGroup
+
 	for i, maskStr := range maskingStrs {
-		maskedStr := s.findAndMaskLinks(maskStr)
-		maskedStrs[i] = maskedStr
+		wg.Add(1)
+		checkCountG <- struct{}{}
+
+		go func(checkCountG <-chan struct{}) {
+			s.findAndMaskLinks(chMaskStr, chMaskedStr)
+			<-checkCountG
+			wg.Done()
+		}(checkCountG)
+
+		chMaskStr <- maskStr
+		maskedStrs[i] = <-chMaskedStr
 	}
+	wg.Wait()
 
 	err = s.pres.present(maskedStrs)
 	if err != nil {
@@ -96,11 +112,12 @@ func (s *Service) Run() error {
 	return nil
 }
 
-func (s *Service) findAndMaskLinks(sourceStr string) string {
+func (s *Service) findAndMaskLinks(chMaskStr <-chan string, chMaskedStr chan<- string) {
 	var mask = []rune("http://")
-
+	sourceStr := <-chMaskStr
 	if len(sourceStr) < len(mask) {
-		return sourceStr
+		chMaskedStr <- sourceStr
+		return
 	}
 
 	maskingStr, maskedStr := make([]rune, len([]rune(sourceStr))), make([]rune, len([]rune(sourceStr)))
@@ -140,5 +157,5 @@ func (s *Service) findAndMaskLinks(sourceStr string) string {
 		}
 	}
 
-	return string(maskedStr)
+	chMaskedStr <- string(maskedStr)
 }
