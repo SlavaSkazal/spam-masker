@@ -156,6 +156,5 @@ func (s *Service) findAndMaskLinks(chMaskStr <-chan string, chMaskedStr chan<- s
 			}
 		}
 	}
-
 	chMaskedStr <- string(maskedStr)
 }
