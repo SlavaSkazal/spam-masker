@@ -22,7 +22,7 @@ func main() {
 	if len(os.Args) > minNumArgs {
 		filepathRes = os.Args[numArgPathRes]
 	} else {
-		filepathRes = "data/masking/output.txt"
+		filepathRes = "test/output.txt"
 	}
 
 	serv := masking.NewService(filepathSource, filepathRes)
