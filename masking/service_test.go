@@ -8,7 +8,7 @@ import (
 func Test_findAndMaskLinks(t *testing.T) {
 	var prod producer
 	var pres presenter
-	s := &Service{prod, pres}
+	serv := &Service{prod, pres}
 
 	const countG = 10
 
@@ -33,7 +33,7 @@ func Test_findAndMaskLinks(t *testing.T) {
 			want: "Here's my spammy page: http://******************* see you.",
 		},
 		{
-			name: "beggin, end link",
+			name: "begin, end link",
 			args: args{
 				sourceStr:   "http://hehefouls.netHAHAHA see you. http://sdsd",
 				chMaskStr:   make(chan string, countG),
@@ -133,10 +133,11 @@ func Test_findAndMaskLinks(t *testing.T) {
 		},
 	}
 
+	t.Parallel()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.chMaskStr <- tt.args.sourceStr
-			s.findAndMaskLinks(tt.args.chMaskStr, tt.args.chMaskedStr)
+			serv.findAndMaskLinks(tt.args.chMaskStr, tt.args.chMaskedStr)
 			result := <-tt.args.chMaskedStr
 			assert.Equalf(t, tt.want, result, "findAndMaskLinks(%v)", tt.args.sourceStr)
 		})

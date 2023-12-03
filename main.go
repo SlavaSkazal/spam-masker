@@ -1,32 +1,35 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"spamMasker/masking"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("order numbers not sent")
+	minNumArgs := 2
+	numArgPathSource := 1
+	numArgPathRes := 2
+
+	if len(os.Args) < minNumArgs {
+		log.Println("order numbers not sent")
 		return
 	}
 
-	var filepathRes string
-	filepathSource := os.Args[1]
+	var filepathSource, filepathRes string
 
-	if len(os.Args) > 2 {
-		filepathRes = os.Args[2]
+	filepathSource = os.Args[numArgPathSource]
+	if len(os.Args) > minNumArgs {
+		filepathRes = os.Args[numArgPathRes]
 	} else {
-		filepathRes = "output.txt"
+		filepathRes = "data/masking/output.txt"
 	}
 
 	serv := masking.NewService(filepathSource, filepathRes)
 
-	err := serv.Run()
-	if err != nil {
-		fmt.Println(err)
+	if err := serv.Run(); err != nil {
+		log.Println(err)
 	} else {
-		fmt.Println("Done.")
+		log.Println("Done.")
 	}
 }

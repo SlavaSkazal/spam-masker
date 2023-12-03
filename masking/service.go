@@ -1,26 +1,9 @@
 package masking
 
 import (
-	"bufio"
-	"os"
+	"fmt"
 	"sync"
 )
-
-type producer interface {
-	produce() ([]string, error)
-}
-
-type presenter interface {
-	present([]string) error
-}
-
-type Producer struct {
-	filepathSource string
-}
-
-type Presenter struct {
-	filepathRes string
-}
 
 type Service struct {
 	prod producer
@@ -42,52 +25,18 @@ func NewService(filepathSource string, filepathRes string) *Service {
 	return &Service{prod, pres}
 }
 
-func (p *Producer) produce() ([]string, error) {
-	var maskingStrs []string
-
-	f, err := os.Open(p.filepathSource)
-	if err != nil {
-		return maskingStrs, err
-	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		maskingStrs = append(maskingStrs, sc.Text())
-	}
-	return maskingStrs, nil
-}
-
-func (p *Presenter) present(maskedStrs []string) error {
-	f, err := os.Create(p.filepathRes)
-
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	for _, line := range maskedStrs {
-		_, err := f.WriteString(line + "\n")
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (s *Service) Run() error {
 	maskingStrs, err := s.prod.produce()
 	if err != nil {
-		return err
+		return fmt.Errorf("error produce(): %w", err)
 	}
 
-	maskedStrs := make([]string, len(maskingStrs))
 	const countG = 10
+	var wg sync.WaitGroup
+	maskedStrs := make([]string, len(maskingStrs))
 	checkCountG := make(chan struct{}, countG)
 	chMaskStr := make(chan string, countG)
 	chMaskedStr := make(chan string, countG)
-	var wg sync.WaitGroup
 
 	for i, maskStr := range maskingStrs {
 		wg.Add(1)
@@ -102,11 +51,12 @@ func (s *Service) Run() error {
 		chMaskStr <- maskStr
 		maskedStrs[i] = <-chMaskedStr
 	}
+
 	wg.Wait()
 
 	err = s.pres.present(maskedStrs)
 	if err != nil {
-		return err
+		return fmt.Errorf("error present(): %w", err)
 	}
 
 	return nil
@@ -114,6 +64,7 @@ func (s *Service) Run() error {
 
 func (s *Service) findAndMaskLinks(chMaskStr <-chan string, chMaskedStr chan<- string) {
 	var mask = []rune("http://")
+
 	sourceStr := <-chMaskStr
 	if len(sourceStr) < len(mask) {
 		chMaskedStr <- sourceStr
